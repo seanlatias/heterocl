@@ -28,6 +28,9 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <vector>
+#include <utility>
+#include <string>
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,6 +93,23 @@ typedef struct {
 } DLDataType;
 
 /*!
+ * \brief The struct type
+ */
+typedef std::vector<std::pair<std::string, DLDataType> > DLStruct;
+
+typedef struct DLExtend : DLDataType {
+  DLStruct* structs;
+
+  DLExtend& operator=(const DLDataType& t) {
+    this->code = t.code;
+    this->bits = t.bits;
+    this->lanes = t.lanes;
+    this->fracs = t.fracs;
+    return *this;
+  }
+} DLExtendType;
+
+/*!
  * \brief Plain C Tensor object, does not manage memory.
  */
 typedef struct {
@@ -104,7 +124,7 @@ typedef struct {
   /*! \brief Number of dimensions */
   int ndim;
   /*! \brief The data type of the pointer*/
-  DLDataType dtype;
+  DLExtendType dtype;
   /*! \brief The shape of the tensor */
   int64_t* shape;
   /*!

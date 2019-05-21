@@ -91,6 +91,8 @@ typedef enum {
   kExtBegin = 15U,
   kNNVMFirst = 16U,
   kNNVMLast = 20U,
+  // For struct
+  kStruct = 32U,
   // The following section of code is used for non-reserved types.
   kExtReserveEnd = 64U,
   kExtEnd = 128U
@@ -107,6 +109,8 @@ typedef enum {
  * \note Arguments TVM API function always takes bits=64 and lanes=1
  */
 typedef DLDataType TVMType;
+
+typedef DLExtendType HCLType;
 
 /*!
  * \brief The Device information, abstract away common device types.

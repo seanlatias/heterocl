@@ -152,19 +152,29 @@ class TVMArgs {
  */
 inline const char* TypeCode2Str(int type_code);
 
+inline TVMType HCLType2TVMType(HCLType t);
+inline HCLType TVMType2HCLType(TVMType t);
+
 /*!
  * \brief convert a string to TVM type.
  * \param s The string to be converted.
  * \return The corresponding tvm type.
  */
-inline TVMType String2TVMType(std::string s);
+inline HCLType String2HCLType(std::string s);
+inline TVMType String2TVMType(std::string s) {
+  return HCLType2TVMType(String2HCLType(s));
+}
 
 /*!
  * \brief convert a TVM type to string.
  * \param t The type to be converted.
  * \return The corresponding tvm type in string.
  */
-inline std::string TVMType2String(TVMType t);
+inline std::string HCLType2String(HCLType t);
+inline std::string TVMType2String(TVMType t) {
+  return HCLType2String(TVMType2HCLType(t));
+}
+
 
 // macro to check type code.
 #define TVM_CHECK_TYPE_CODE(CODE, T)                           \
@@ -637,13 +647,32 @@ inline const char* TypeCode2Str(int type_code) {
     case kModuleHandle: return "ModuleHandle";
     case kFixed: return "fixed";
     case kUFixed: return "ufixed";
+    case kStruct: return "struct";
     default: LOG(FATAL) << "unknown type_code="
                         << static_cast<int>(type_code); return "";
   }
 }
 
+inline TVMType HCLType2TVMType(HCLType t_hcl) {
+  TVMType t_tvm;
+  t_tvm.code = t_hcl.code;
+  t_tvm.bits = t_hcl.bits;
+  t_tvm.fracs = t_hcl.fracs;
+  t_tvm.lanes = t_hcl.lanes;
+  return t_tvm;
+}
+
+inline HCLType TVMType2HCLType(TVMType t_tvm) {
+  HCLType t_hcl;
+  t_hcl.code = t_tvm.code;
+  t_hcl.bits = t_tvm.bits;
+  t_hcl.fracs = t_tvm.fracs;
+  t_hcl.lanes = t_tvm.lanes;
+  return t_hcl;
+}
+
 #ifndef _LIBCPP_SGX_NO_IOSTREAMS
-inline std::ostream& operator<<(std::ostream& os, TVMType t) {  // NOLINT(*)
+inline std::ostream& operator<<(std::ostream& os, HCLType t) {  // NOLINT(*)
   os << TypeCode2Str(t.code);
   if (t.code == kHandle) return os;
   os << static_cast<int>(t.bits);
@@ -657,7 +686,14 @@ inline std::ostream& operator<<(std::ostream& os, TVMType t) {  // NOLINT(*)
 }
 #endif
 
-inline std::string TVMType2String(TVMType t) {
+#ifndef _LIBCPP_SGX_NO_IOSTREAMS
+inline std::ostream& operator<<(std::ostream& os, TVMType t) {  // NOLINT(*)
+  os << TVMType2HCLType(t);
+  return os;
+}
+#endif
+
+inline std::string HCLType2String(HCLType t) {
 #ifndef _LIBCPP_SGX_NO_IOSTREAMS
   std::ostringstream os;
   os << t;
@@ -677,8 +713,8 @@ inline std::string TVMType2String(TVMType t) {
 #endif
 }
 
-inline TVMType String2TVMType(std::string s) {
-  TVMType t;
+inline HCLType String2HCLType(std::string s) {
+  HCLType t;
   t.bits = 32; t.lanes = 1; t.fracs = 0;
   const char* scan;
   if (s.substr(0, 3) == "int") {

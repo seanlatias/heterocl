@@ -20,7 +20,7 @@ void PrintIndent(std::ofstream& stream, int indent) {
     stream << ' ';
 }
 
-inline size_t GetTypeSize(TVMType t) {
+inline size_t GetTypeSize(HCLType t) {
   size_t byte = (t.bits + 7) / 8;
   if (byte > 2){
     if (byte <= 4) byte = 4;
@@ -45,8 +45,8 @@ inline size_t GetDataSize(TVMArray* arr) {
   return size;
 }
 
-inline TVMType Type2TVMType(Type t) {
-  TVMType tt;
+inline HCLType Type2HCLType(Type t) {
+  HCLType tt;
   if (t.is_int())        tt.code = kDLInt;
   else if (t.is_uint())  tt.code = kDLUInt;
   else if (t.is_float()) tt.code = kDLFloat;
@@ -56,7 +56,7 @@ inline TVMType Type2TVMType(Type t) {
   return tt;
 }
 
-inline std::string Type2Str(TVMType t) {
+inline std::string Type2Str(HCLType t) {
   std::string str = "";
   if (t.code == kDLInt) {
     if (t.fracs > 0) str += "ap_fixed<";
@@ -78,7 +78,7 @@ inline std::string Type2Str(TVMType t) {
   return str;
 }
 
-inline std::string Type2ExtStr(TVMType t) {
+inline std::string Type2ExtStr(HCLType t) {
   std::string str = "";
   if (t.code == kDLInt) {
     if (t.fracs > 0) str += "ap_fixed<";
@@ -100,7 +100,7 @@ inline std::string Type2ExtStr(TVMType t) {
   return str;
 }
 
-inline std::string Type2Byte(TVMType t) {
+inline std::string Type2Byte(HCLType t) {
   std::string str = "";
   if (t.code == kDLFloat) {
     str += "float";
@@ -119,7 +119,7 @@ inline std::string Type2Byte(TVMType t) {
 void CollectArgInfo(TVMArgs& args, 
                     LoweredFunc func,
                     std::vector<size_t>& arg_sizes,
-                    std::vector<TVMType>& arg_types) {
+                    std::vector<HCLType>& arg_types) {
   for (int i = 0; i < args.size(); i++) {
     if (args[i].type_code() == kArrayHandle) {
       TVMArray* arr = args[i];
@@ -127,7 +127,7 @@ void CollectArgInfo(TVMArgs& args,
       arg_types.push_back(arr->dtype);
     } else {
       const Variable* var = func->api_args[i].as<Variable>();
-      TVMType t = Type2TVMType(var->type);
+      HCLType t = Type2HCLType(var->type);
       arg_sizes.push_back(GetTypeSize(t));
       arg_types.push_back(t);
     }
@@ -247,7 +247,7 @@ void PrintCopyBack(TVMArray* arr,
 
 void GenHostCode(TVMArgs& args,
                  const std::vector<int>& shmids,
-                 const std::vector<TVMType>& arg_types,
+                 const std::vector<HCLType>& arg_types,
                  LoweredFunc func,
                  std::string test_file) {
   int indent = 0;
@@ -338,7 +338,7 @@ class VivadoHLSModuleNode final : public ModuleNode {
           LOG(FATAL) << "The function should take in " << func_->args.size() 
                      << " inputs but get " << args.size();
         std::vector<size_t> arg_sizes;
-        std::vector<TVMType> arg_types;
+        std::vector<HCLType> arg_types;
         std::vector<int> shmids;
         CollectArgInfo(args, func_, arg_sizes, arg_types);
         GenSharedMem(args, shmids, arg_sizes);

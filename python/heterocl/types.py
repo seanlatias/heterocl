@@ -22,6 +22,7 @@ class Type(object):
             raise DTypeError("Number of fractional bits must be an integer.")
         self.bits = bits
         self.fracs = fracs
+        self.struct = None
 
 class Int(Type):
     """Arbitrary-bit signed integers"""
@@ -47,6 +48,19 @@ class UFixed(Type):
     """Arbitrary-bit unsigned fixed points"""
     def __repr__(self):
         return "UFixed(" + str(self.bits) + ", " + str(self.fracs) + ")"
+
+class Struct(Type):
+    """C-like struct"""
+    def __init__(self, struct):
+        if not isinstance(struct, dict):
+            raise DTypeError("The struct must be a dict")
+        nbits = 0
+        for name, dtype in struct.items():
+            nbits += dtype.bits
+        Type.__init__(self, nbits, 0)
+        self.struct = struct
+    def __repr__(self):
+        return "Struct" + str(self.struct)
 
 def dtype_to_str(dtype):
     """Convert a data type to string format.
@@ -80,6 +94,16 @@ def dtype_to_str(dtype):
             if fracs == 0:
                 return "uint" + str(bits)
             return "ufixed" + str(bits) + "_" + str(fracs)
+        elif isinstance(dtype, Struct):
+            ret = "{"
+            for name, dtype in dtype.struct.items():
+                ret += name
+                ret += ":"
+                ret += dtype_to_str(dtype)
+                ret += ","
+            ret = ret[:-1]
+            ret += "}"
+            return ret
         else: # Float
             return "float" + str(dtype.bits)
     else:
