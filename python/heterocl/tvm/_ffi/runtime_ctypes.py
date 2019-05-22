@@ -101,6 +101,74 @@ class TVMType(ctypes.Structure):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+class HCLType(ctypes.Structure):
+    _fields_ = [("type_code", ctypes.c_uint8),
+                ("bits", ctypes.c_uint8),
+                ("lanes", ctypes.c_uint8),
+                ("fracs", ctypes.c_uint8),
+                ("structs", ctypes.POINTER(TVMType))]
+    CODE2STR = {
+        0 : 'int',
+        1 : 'uint',
+        2 : 'float',
+        4 : 'handle'
+    }
+    def __init__(self, type_str):
+        super(HCLType, self).__init__()
+        if isinstance(type_str, np.dtype):
+            type_str = str(type_str)
+        head = type_str
+        bits = 32
+
+        if head.startswith("int"):
+            self.type_code = 0
+            head = head[3:]
+        elif head.startswith("uint"):
+            self.type_code = 1
+            head = head[4:]
+        elif head.startswith("float"):
+            self.type_code = 2
+            head = head[5:]
+        elif head.startswith("handle"):
+            self.type_code = 4
+            bits = 64
+            head = ""
+        elif head.startswith("fixed"):
+            self.type_code = 0
+            head = head[5:]
+        elif head.startswith("ufixed"):
+            self.type_code = 1
+            head = head[6:]
+        else:
+            raise ValueError("Do not know how to handle type %s" % type_str)
+        if head:
+            strs = head.split('x')
+            self.lanes = int(strs[1]) if len(strs) > 1 else 1
+            strs = strs[0].split('_')
+            self.bits = int(strs[0])
+            self.fracs = int(strs[1]) if len(strs) > 1 else 0
+        else:
+            self.bits = bits
+            self.lanes = 1
+            self.fracs = 0
+
+    def __repr__(self):
+        x = "%s%d" % (HCLType.CODE2STR[self.type_code], self.bits)
+        if self.fracs != 0:
+            x += "_%d" % self.fracs
+        if self.lanes != 1:
+            x += "x%d" % self.lanes
+        return x
+
+    def __eq__(self, other):
+        return (self.bits == other.bits and
+                self.type_code == other.type_code and
+                self.lanes == other.lanes and
+                self.fracs == other.fracs)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 RPC_SESS_MASK = 128
 
 class TVMContext(ctypes.Structure):
@@ -198,7 +266,7 @@ class TVMArray(ctypes.Structure):
     _fields_ = [("data", ctypes.c_void_p),
                 ("ctx", TVMContext),
                 ("ndim", ctypes.c_int),
-                ("dtype", TVMType),
+                ("dtype", HCLType),
                 ("shape", ctypes.POINTER(tvm_shape_index_t)),
                 ("strides", ctypes.POINTER(tvm_shape_index_t)),
                 ("byte_offset", ctypes.c_uint64)]

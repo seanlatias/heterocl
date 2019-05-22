@@ -6,7 +6,7 @@ import sys
 import ctypes
 import numpy as np
 from .base import _LIB, check_call, c_array, string_types, _FFI_MODE
-from .runtime_ctypes import TVMType, TVMContext, TVMArray, TVMArrayHandle
+from .runtime_ctypes import TVMType, HCLType, TVMContext, TVMArray, TVMArrayHandle
 from .runtime_ctypes import TypeCode, tvm_shape_index_t
 
 
@@ -72,7 +72,7 @@ def numpyasarray(np_data):
     arr.data = data.ctypes.data_as(ctypes.c_void_p)
     arr.shape = shape
     arr.strides = None
-    arr.dtype = TVMType(np.dtype(data.dtype).name)
+    arr.dtype = HCLType(np.dtype(data.dtype).name)
     arr.ndim = data.ndim
     # CPU device
     arr.ctx = context(1, 0)
@@ -100,7 +100,7 @@ def empty(shape, dtype="float32", ctx=context(1, 0)):
     shape = c_array(tvm_shape_index_t, shape)
     ndim = ctypes.c_int(len(shape))
     handle = TVMArrayHandle()
-    dtype = TVMType(dtype)
+    dtype = HCLType(dtype)
     check_call(_LIB.TVMArrayAlloc(
         shape, ndim,
         ctypes.c_int(dtype.type_code),
@@ -177,7 +177,7 @@ class NDArrayBase(_NDArrayBase):
             except:
                 raise TypeError('array must be an array_like data,' +
                                 'type %s is not supported' % str(type(source_array)))
-        t = TVMType(self.dtype)
+        t = HCLType(self.dtype)
         shape, dtype = self.shape, self.dtype
         if t.lanes > 1:
             shape = shape + (t.lanes,)
@@ -230,7 +230,7 @@ class NDArrayBase(_NDArrayBase):
         np_arr : numpy.ndarray
             The corresponding numpy array.
         """
-        t = TVMType(self.dtype)
+        t = HCLType(self.dtype)
         shape, dtype = self.shape, self.dtype
         if t.lanes > 1:
             shape = shape + (t.lanes,)

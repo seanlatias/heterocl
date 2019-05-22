@@ -25,12 +25,18 @@ void CodeGenCPU::Init(const std::string& module_name,
   t_tvm_shape_index_ = llvm::Type::getIntNTy(*ctx, TVMShapeIndexType().bits());
   t_tvm_context_ = llvm::StructType::create({t_int_, t_int_});
   t_tvm_type_ = llvm::StructType::create({t_int8_, t_int8_, t_int8_, t_int8_});
+  t_hcl_type_ = llvm::StructType::create(
+      {t_int8_,
+       t_int8_,
+       t_int8_,
+       t_int8_,
+       t_tvm_type_->getPointerTo()});
   t_tvm_func_handle_ = t_void_p_;
   t_tvm_array_ = llvm::StructType::create(
       {t_void_p_,
        t_tvm_context_,
        t_int_,
-       t_tvm_type_,
+       t_hcl_type_,
        t_tvm_shape_index_->getPointerTo(),
        t_tvm_shape_index_->getPointerTo(),
        t_int64_});

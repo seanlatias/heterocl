@@ -28,9 +28,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <vector>
-#include <utility>
-#include <string>
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,10 +92,8 @@ typedef struct {
 /*!
  * \brief The struct type
  */
-typedef std::vector<std::pair<std::string, DLDataType> > DLStruct;
-
 typedef struct DLExtend : DLDataType {
-  DLStruct* structs;
+  DLDataType* structs;
 
   DLExtend& operator=(const DLDataType& t) {
     this->code = t.code;

@@ -39,6 +39,7 @@ class CodeGenCPU : public CodeGenLLVM {
   llvm::Type* t_tvm_func_handle_{nullptr};
   llvm::StructType* t_tvm_context_{nullptr};
   llvm::StructType* t_tvm_type_{nullptr};
+  llvm::StructType* t_hcl_type_{nullptr};
   llvm::StructType* t_tvm_array_{nullptr};
   llvm::StructType* t_tvm_value_{nullptr};
   llvm::StructType* t_tvm_parallel_group_env_{nullptr};
