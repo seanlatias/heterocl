@@ -400,6 +400,8 @@ TVM_DLL int TVMArrayAlloc(const tvm_index_t* shape,
                           int dtype_bits,
                           int dtype_lanes,
                           int dtype_fracs,
+                          int dtype_nstruct,
+                          const TVMType* dtype_structs,
                           int device_type,
                           int device_id,
                           TVMArrayHandle* out);

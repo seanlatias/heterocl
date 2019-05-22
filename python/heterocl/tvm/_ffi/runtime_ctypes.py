@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import ctypes
 import numpy as np
-from .base import _LIB, check_call
+from .base import _LIB, check_call, c_array
 from .. import _api_internal
 
 tvm_shape_index_t = ctypes.c_int64
@@ -43,7 +43,7 @@ class TVMType(ctypes.Structure):
         0 : 'int',
         1 : 'uint',
         2 : 'float',
-        4 : 'handle'
+        4 : 'handle',
     }
     def __init__(self, type_str):
         super(TVMType, self).__init__()
@@ -106,12 +106,14 @@ class HCLType(ctypes.Structure):
                 ("bits", ctypes.c_uint8),
                 ("lanes", ctypes.c_uint8),
                 ("fracs", ctypes.c_uint8),
-                ("structs", ctypes.POINTER(TVMType))]
+                ("structs", ctypes.POINTER(TVMType)),
+                ("nstruct", ctypes.c_int)]
     CODE2STR = {
         0 : 'int',
         1 : 'uint',
         2 : 'float',
-        4 : 'handle'
+        4 : 'handle',
+        32: 'struct'
     }
     def __init__(self, type_str):
         super(HCLType, self).__init__()
@@ -119,6 +121,7 @@ class HCLType(ctypes.Structure):
             type_str = str(type_str)
         head = type_str
         bits = 32
+        self.nstruct = 0
 
         if head.startswith("int"):
             self.type_code = 0
@@ -139,6 +142,19 @@ class HCLType(ctypes.Structure):
         elif head.startswith("ufixed"):
             self.type_code = 1
             head = head[6:]
+        elif head.startswith("struct"):
+            self.type_code = 32
+            head = head[7:-1]
+            strs = head.split(',')
+            bits = 0
+            types = []
+            for s in strs:
+                t = TVMType(s)
+                bits += t.bits
+                types.append(t)
+            self.nstruct = len(strs)
+            self.structs = c_array(TVMType, types)
+            head = ""
         else:
             raise ValueError("Do not know how to handle type %s" % type_str)
         if head:
@@ -153,6 +169,14 @@ class HCLType(ctypes.Structure):
             self.fracs = 0
 
     def __repr__(self):
+        if not self.nstruct == 0:
+            x = "struct{"
+            for i in range(0, self.nstruct):
+                x += str(self.structs[i])
+                if i != self.nstruct-1:
+                    x += ","
+            x += "}"
+            return x
         x = "%s%d" % (HCLType.CODE2STR[self.type_code], self.bits)
         if self.fracs != 0:
             x += "_%d" % self.fracs

@@ -94,6 +94,7 @@ typedef struct {
  */
 typedef struct DLExtend : DLDataType {
   DLDataType* structs;
+  int nstruct;
 
   DLExtend& operator=(const DLDataType& t) {
     this->code = t.code;

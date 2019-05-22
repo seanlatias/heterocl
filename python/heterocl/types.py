@@ -95,10 +95,8 @@ def dtype_to_str(dtype):
                 return "uint" + str(bits)
             return "ufixed" + str(bits) + "_" + str(fracs)
         elif isinstance(dtype, Struct):
-            ret = "{"
+            ret = "struct{"
             for name, dtype in dtype.struct.items():
-                ret += name
-                ret += ":"
                 ret += dtype_to_str(dtype)
                 ret += ","
             ret = ret[:-1]

@@ -11,6 +11,7 @@
 #include <tuple>
 #include <vector>
 #include <string>
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <type_traits>
@@ -675,6 +676,16 @@ inline HCLType TVMType2HCLType(TVMType t_tvm) {
 inline std::ostream& operator<<(std::ostream& os, HCLType t) {  // NOLINT(*)
   os << TypeCode2Str(t.code);
   if (t.code == kHandle) return os;
+  if (t.code == kStruct) {
+    os << "{";
+    for (int i = 0; i < t.nstruct; i++) {
+      os << TVMType2HCLType(t.structs[i]);
+      if (i != t.nstruct - 1)
+        os << ", ";
+    }
+    os << "}";
+    return os;
+  }
   os << static_cast<int>(t.bits);
   if (t.fracs > 0) {
     os << '_' << static_cast<int>(t.fracs);
@@ -702,6 +713,16 @@ inline std::string HCLType2String(HCLType t) {
   std::string repr = "";
   repr += TypeCode2Str(t.code);
   if (t.code == kHandle) return repr;
+  if (t.code == kStruct) {
+    repr += "{";
+    for (int i = 0; i < t.nstruct; i++) {
+      repr += TVMType2String(t.structs[i]);
+      if (i != t.nstruct - 1)
+        repr += ", ";
+    }
+    repr += "}";
+    return repr;
+  }
   repr += std::to_string(static_cast<int>(t.bits));
   if (t.fracs > 0) {
     repr += "_" + std::to_string(static_cast<int>(t.fracs));
@@ -731,6 +752,29 @@ inline HCLType String2HCLType(std::string s) {
     t.code = kHandle;
     t.bits = 64;  // handle uses 64 bit by default.
     scan = s.c_str() + 6;
+  } else if (s.substr(0, 6) == "struct") {
+    t.code = kStruct;
+    size_t size = s.size();
+    s = s.substr(6, size-1);
+    scan = s.c_str();
+    char* str = new char [s.length() + 1];
+    std::strcpy(str, s.c_str());
+    int bits = 0;
+    std::vector<TVMType> types;
+    char* type = std::strtok(str, ",");
+    TVMType t_tvm = HCLType2TVMType(String2HCLType(std::string(type)));
+    bits += t_tvm.bits;
+    types.push_back(t_tvm);
+    while (type != NULL) {
+      type = std::strtok(NULL, ",");
+      t_tvm = HCLType2TVMType(String2HCLType(std::string(type)));
+      bits += t_tvm.bits;
+      types.push_back(t_tvm);
+    }
+    t.bits = bits;
+    t.nstruct = types.size();
+    t.structs = types.data();
+    return t;
   } else {
     scan = s.c_str();
     LOG(FATAL) << "unknown type " << s;

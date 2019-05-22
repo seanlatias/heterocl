@@ -107,6 +107,8 @@ def empty(shape, dtype="float32", ctx=context(1, 0)):
         ctypes.c_int(dtype.bits),
         ctypes.c_int(dtype.lanes),
         ctypes.c_int(dtype.fracs),
+        ctypes.c_int(dtype.nstruct),
+        dtype.structs,
         ctx.device_type,
         ctx.device_id,
         ctypes.byref(handle)))
@@ -206,6 +208,25 @@ class NDArrayBase(_NDArrayBase):
                     source_array = source_array.astype("u"+str(byte))
                     source_array = source_array % num_bits
                     source_array = np.ascontiguousarray(source_array, dtype="u"+str(byte))
+        elif dtype[0:6] == "struct":
+            dtype = dtype[7:-1]
+            types = dtype.split(",")
+            dtype = ""
+            for tp in types:
+                tp = TVMType(tp)
+                byte = get_byte(tp.bits)
+                if tp.type_code == 0:
+                    dtype += "i"
+                elif tp.type_code == 1:
+                    dtype += "u"
+                elif tp.type_code == 2:
+                    dtype += "f"
+                else:
+                    raise TypeError("Unrecognized type")
+                dtype += str(byte)
+                dtype += ","
+            dtype = dtype[:-1]
+            source_array = np.ascontiguousarray(source_array, dtype=dtype)
         else:
             source_array = np.ascontiguousarray(source_array, dtype=dtype)
         assert source_array.flags['C_CONTIGUOUS']
@@ -240,6 +261,25 @@ class NDArrayBase(_NDArrayBase):
             np_arr = np.empty(shape, dtype="i"+str(get_byte(t.bits)))
         elif dtype[0:4] == "uint":
             np_arr = np.empty(shape, dtype="u"+str(get_byte(t.bits)))
+        elif dtype[0:6] == "struct":
+            dtype = dtype[7:-1]
+            types = dtype.split(",")
+            dtype = ""
+            for tp in types:
+                tp = TVMType(tp)
+                byte = get_byte(tp.bits)
+                if tp.type_code == 0:
+                    dtype += "i"
+                elif tp.type_code == 1:
+                    dtype += "u"
+                elif tp.type_code == 2:
+                    dtype += "f"
+                else:
+                    raise TypeError("Unrecognized type")
+                dtype += str(byte)
+                dtype += ","
+            dtype = dtype[:-1]
+            np_arr = np.empty(shape, dtype=dtype)
         else:
             np_arr = np.empty(shape, dtype=dtype)
         assert np_arr.flags['C_CONTIGUOUS']

@@ -30,7 +30,8 @@ void CodeGenCPU::Init(const std::string& module_name,
        t_int8_,
        t_int8_,
        t_int8_,
-       t_tvm_type_->getPointerTo()});
+       t_tvm_type_->getPointerTo(),
+       t_int_});
   t_tvm_func_handle_ = t_void_p_;
   t_tvm_array_ = llvm::StructType::create(
       {t_void_p_,

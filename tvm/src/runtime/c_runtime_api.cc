@@ -135,6 +135,7 @@ inline void TVMArrayFree_(TVMArray* arr) {
     // ok to delete nullptr
     delete[] arr->shape;
     delete[] arr->strides;
+    delete[] arr->dtype.structs;
     if (arr->data != nullptr) {
       DeviceAPIManager::Get(arr->ctx)->FreeDataSpace(
           arr->ctx, arr->data);
@@ -374,6 +375,8 @@ int TVMArrayAlloc(const tvm_index_t* shape,
                   int dtype_bits,
                   int dtype_lanes,
                   int dtype_fracs,
+                  int dtype_nstruct,
+                  const TVMType* dtype_structs,
                   int device_type,
                   int device_id,
                   TVMArrayHandle* out) {
@@ -385,10 +388,19 @@ int TVMArrayAlloc(const tvm_index_t* shape,
   arr->ndim = ndim;
   // dtype
   // VerifyType(dtype_code, dtype_bits, dtype_lanes); TODO: FIX THIS!!
-  arr->dtype.code = static_cast<uint8_t>(dtype_code);
-  arr->dtype.bits = static_cast<uint8_t>(dtype_bits);
-  arr->dtype.lanes = static_cast<uint8_t>(dtype_lanes);
-  arr->dtype.fracs = static_cast<uint8_t>(dtype_fracs);
+  if (dtype_nstruct == 0) {
+    arr->dtype.code = static_cast<uint8_t>(dtype_code);
+    arr->dtype.bits = static_cast<uint8_t>(dtype_bits);
+    arr->dtype.lanes = static_cast<uint8_t>(dtype_lanes);
+    arr->dtype.fracs = static_cast<uint8_t>(dtype_fracs);
+  } else {
+    arr->dtype.code = static_cast<uint8_t>(dtype_code);
+    arr->dtype.bits = static_cast<uint8_t>(dtype_bits);
+    arr->dtype.nstruct = dtype_nstruct;
+    TVMType* struct_copy = new TVMType[dtype_nstruct];
+    std::copy(dtype_structs, dtype_structs + dtype_nstruct, struct_copy);
+    arr->dtype.structs = struct_copy;
+  }
   if (ndim != 0) {
     tvm_index_t* shape_copy = new tvm_index_t[ndim];
     std::copy(shape, shape + ndim, shape_copy);
