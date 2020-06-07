@@ -129,6 +129,7 @@ class CodeGenLLVM :
   void VisitStmt_(const Block* op) override;
   void VisitStmt_(const Evaluate* op) override;
   void VisitStmt_(const ProducerConsumer* op) override;
+  void VisitStmt_(const ExternModule* op) override;
   void VisitStmt_(const KernelDef* op) override;
   void VisitStmt_(const KernelStmt* op) override;
   void VisitStmt_(const Return* op) override;
@@ -136,6 +137,7 @@ class CodeGenLLVM :
   void VisitStmt_(const While* op) override;
   void VisitStmt_(const Partition* op) override {};
   void VisitStmt_(const Stencil* op) override;
+  void VisitStmt_(const Print* op) override;
 
  protected:
   /*! \brief The storage information */
@@ -239,6 +241,7 @@ class CodeGenLLVM :
   llvm::PointerType* t_void_p_{nullptr};
   llvm::Type* t_int_{nullptr};
   llvm::Type* t_char_{nullptr};
+  llvm::PointerType* t_char_p_{nullptr};
   llvm::Type* t_int8_{nullptr};
   llvm::Type* t_int16_{nullptr};
   llvm::Type* t_int32_{nullptr};

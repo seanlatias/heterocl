@@ -43,6 +43,7 @@ void CodeGenLLVM::Init(const std::string& module_name,
   t_void_p_ = llvm::Type::getInt8Ty(*ctx_)->getPointerTo();
   t_int_ = llvm::Type::getInt32Ty(*ctx_);
   t_char_ = llvm::Type::getInt8Ty(*ctx_);
+  t_char_p_ = llvm::Type::getInt8Ty(*ctx_)->getPointerTo();
   t_int8_ = llvm::Type::getInt8Ty(*ctx_);
   t_int16_ = llvm::Type::getInt16Ty(*ctx_);
   t_int32_ = llvm::Type::getInt32Ty(*ctx_);
@@ -637,7 +638,7 @@ llvm::Value* CodeGenLLVM::CreateIntrinsic(const Call* op) {
       if (id == llvm::Intrinsic::pow ||
           id == llvm::Intrinsic::sqrt ||
           id == llvm::Intrinsic::log) {
-          arg = CreateCast(op->type, Float(32), arg);
+          arg = CreateCast(op->type, Float(64), arg);
       }
       arg_value.push_back(arg);
       if (i - 2 < num_signature) {
@@ -646,7 +647,8 @@ llvm::Value* CodeGenLLVM::CreateIntrinsic(const Call* op) {
     }
     llvm::Function* f = llvm::Intrinsic::getDeclaration(
         module_.get(), id, sig_type);
-    return builder_->CreateCall(f, arg_value);
+    llvm::Value* call = builder_->CreateCall(f, arg_value);
+    return CreateCast(Float(64), op->type, call);
   } else if (op->is_intrinsic(Call::bitwise_and)) {
     llvm::Value* a = MakeValue(op->args[0]);
     llvm::Value* b = MakeValue(op->args[1]);
@@ -689,6 +691,12 @@ llvm::Value* CodeGenLLVM::CreateIntrinsic(const Call* op) {
     } else {
       return builder_->CreateLShr(a, b_new);
     }
+  } else if (op->is_intrinsic(Call::bitcast)) {
+    llvm::Value* v = MakeValue(op->args[0]);
+    Type tv = op->args[0].type();
+    Type to = op->type;
+    CHECK(tv.bits() == to.bits());
+    return builder_->CreateBitCast(v, LLVMType(to));
   } else if (op->is_intrinsic(intrinsic::tvm_storage_sync)) {
     return CreateStorageSync(op);
   } else if (op->is_intrinsic(intrinsic::tvm_address_of)) {
@@ -1303,6 +1311,10 @@ void CodeGenLLVM::VisitStmt_(const ProducerConsumer* op) {
   this->VisitStmt(op->body);
 }
 
+void CodeGenLLVM::VisitStmt_(const ExternModule* op) {
+  this->VisitStmt(op->body);
+}
+
 void CodeGenLLVM::VisitStmt_(const KernelDef* op) {
   this->SaveFuncState();
   const UIntImm* is_void = op->ret_void.as<UIntImm>();
@@ -1401,6 +1413,41 @@ void CodeGenLLVM::VisitStmt_(const While* op) {
 
 void CodeGenLLVM::VisitStmt_(const Stencil* op) {
   this->VisitStmt(op->body);
+}
+
+void CodeGenLLVM::VisitStmt_(const Print* op) {
+  std::vector<llvm::Value*> values;
+  std::vector<Type> types;
+  std::vector<llvm::Type*> llvm_types;
+  for (size_t i = 0; i < op->values.size(); i++) {
+    Expr v = op->values[i];
+    values.push_back(MakeValue(v));
+    types.push_back(v.type());
+    if (v.type().is_int() || v.type().is_uint()) {
+      llvm_types.push_back(t_int64_);
+    } else {
+      llvm_types.push_back(llvm::Type::getDoubleTy(*ctx_));
+    }
+  }
+  llvm::FunctionType* call_ftype = llvm::FunctionType::get(t_int_, true);
+#if TVM_LLVM_VERSION <= 60
+  llvm::Function* printf_call = llvm::cast<llvm::Function>(module_->getOrInsertFunction("printf", call_ftype));
+#else
+  llvm::Function* printf_call = llvm::cast<llvm::Function>(module_->getOrInsertFunction("printf", call_ftype).getCallee());
+#endif
+  std::vector<llvm::Value*> printf_args;
+  std::string format = op->format;
+  printf_args.push_back(builder_->CreateGlobalStringPtr(format));
+  for (size_t i = 0; i < op->values.size(); i++) {
+    if (types[i].is_int() || types[i].is_uint()) {
+      llvm::Value* ivalue = CreateCast(types[i], Int(64), values[i]);
+      printf_args.push_back(ivalue);
+    } else { // fixed or float
+      llvm::Value* fvalue = CreateCast(types[i], Float(64), values[i]);
+      printf_args.push_back(fvalue);
+    }
+  }
+  builder_->CreateCall(printf_call, printf_args);
 }
 
 }  // namespace codegen

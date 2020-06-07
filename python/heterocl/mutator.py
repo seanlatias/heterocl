@@ -1,6 +1,7 @@
 from .tvm import expr as _expr
 from .tvm import stmt as _stmt
 from .tvm import make as _make
+from .tvm.api import convert
 
 class Mutator(object):
 
@@ -76,6 +77,8 @@ class Mutator(object):
                     return self.mutate_SetSlice(node)
                 elif isinstance(node, _expr.KernelExpr):
                     return self.mutate_KernelExpr(node)
+                elif isinstance(node, _expr.StreamExpr):
+                    return self.mutate_StreamExpr(node)
                 else:
                     return node
         elif isinstance(node, _stmt.Stmt):
@@ -85,6 +88,8 @@ class Mutator(object):
                 return self.mutate_AssertStmt(node)
             elif isinstance(node, _stmt.ProducerConsumer):
                 return self.mutate_ProducerConsumer(node)
+            elif isinstance(node, _stmt.ExternModule):
+                return self.mutate_ExternModule(node)
             elif isinstance(node, _stmt.For):
                 return self.mutate_For(node)
             elif isinstance(node, _stmt.Store):
@@ -111,6 +116,8 @@ class Mutator(object):
                 return self.mutate_Break(node)
             elif isinstance(node, _stmt.While):
                 return self.mutate_While(node)
+            elif isinstance(node, _stmt.StreamStmt):
+                return self.mutate_StreamStmt(node)
             else:
                 return node
         elif isinstance(node, tuple):
@@ -187,9 +194,9 @@ class Mutator(object):
         return _make.Cast(node.dtype, value)
 
     def mutate_Select(self, node):
-        condition = self.mutate(node.condition)
-        true_value = self.mutate(node.true_value)
-        false_value = self.mutate(node.false_value)
+        condition = _make.Cast("uint1", self.mutate(node.condition))
+        true_value = convert(self.mutate(node.true_value))
+        false_value = convert(self.mutate(node.false_value))
         return _make.Select(condition, true_value, _make.Cast(true_value.dtype, false_value))
 
     def mutate_Load(self, node):
@@ -247,6 +254,10 @@ class Mutator(object):
         args = self.mutate(node.args)
         return _make.KernelExpr(node.dtype, args, node.name)
 
+    def mutate_StreamExpr(self, node):
+        args = self.mutate(node.args)
+        return _make.StreamExpr(node.dtype, args, node.name)
+
     # statements
     def mutate_LetStmt(self, node):
         var = self.mutate(node.var)
@@ -261,8 +272,13 @@ class Mutator(object):
         return _make.AssertStmt(condition, message, body)
 
     def mutate_ProducerConsumer(self, node):
-        body = self.mutate(body)
+        body = self.mutate(node.body)
         return _make.ProducerConsumer(node.func, node.is_producer, body)
+
+    def mutate_ExternModule(self, node):
+        body = self.mutate(node.body)
+        return _make.ExternModule(node.attr_key, node.value, body, 
+                node.annotate_keys, node.annotate_values)
 
     def mutate_For(self, node):
         loop_var = self.mutate(node.loop_var)
@@ -318,6 +334,10 @@ class Mutator(object):
     def mutate_KernelStmt(self, node):
         args = self.mutate(node.args)
         return _make.KernelStmt(args, node.name)
+
+    def mutate_StreamStmt(self, node):
+        args = self.mutate(node.args)
+        return _make.StreamStmt(node.dtype, args, node.name)
 
     def mutate_Return(self, node):
         value = self.mutate(node.value)

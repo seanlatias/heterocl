@@ -1,11 +1,14 @@
 """This module contains all HeteroCL APIs"""
 #pylint: disable=no-member
+import numbers
 from ordered_set import OrderedSet
 from .tvm.build_module import build as _build, lower as _lower
+from .tvm.api import convert, _IterVar
 from .tvm import _api_internal as tvm_api
 from .tvm import schedule as _schedule
-from .tvm import make as _make
-from .tensor import Scalar, Tensor
+from .tvm import call_intrin
+from .tvm import expr as _expr, stmt as _stmt, make as _make
+from .tensor import Scalar, Tensor, TensorSlice
 from .schedule import Stage, Schedule
 from .scheme import Scheme
 from . import util
@@ -51,7 +54,7 @@ def init(init_dtype="int32"):
         # execute f2
     """
     # set the configurations
-    config.init_dtype = init_dtype
+    config.init_dtype  = init_dtype
     # initialize global variables
     Schedule.stage_ops = []
     Schedule.last_stages = OrderedSet([])
@@ -88,11 +91,12 @@ def placeholder(shape, name=None, dtype=None):
     """
     name = util.get_name("placeholder", name)
     dtype = util.get_dtype(dtype)
+    tvm_dtype = types.dtype_to_str(dtype)
 
     if shape == ():
-        return Scalar(tvm_api._Var(name, dtype))
+        return Scalar(tvm_api._Var(name, tvm_dtype))
     tensor = Tensor(shape, dtype, name)
-    tensor.tensor = tvm_api._Placeholder(tensor.buf.shape, dtype, name)
+    tensor.tensor = tvm_api._Placeholder(tensor.buf.shape, tvm_dtype, name)
 
     # placeholder is also a stage
     stage = Stage(name)
@@ -139,8 +143,9 @@ def create_scheme(inputs, func):
     """
     if not isinstance(inputs, list):
         inputs = [inputs]
-    func(*inputs)
-    for op in Schedule.stage_ops:
+    with Stage("_top") as top:
+        func(*inputs)
+    for op in top.substages:
         func.__setattr__(op.name, op)
     return Scheme(inputs, func)
 
@@ -198,7 +203,8 @@ def create_schedule(inputs, func=None):
         Schedule.stage_ops = []
         Schedule.last_stages = OrderedSet([])
         # execute the algorithm
-        ret = func(*inputs)
+        with Stage("_top") as top:
+            ret = func(*inputs)
         # append the output tensors to the input list
         if ret is not None:
             if isinstance(ret, tuple):
@@ -206,7 +212,8 @@ def create_schedule(inputs, func=None):
             else:
                 inputs.append(ret)
         # let each stage be an attribute of the function
-        for op in Schedule.stage_ops:
+        for op in top.substages:
+            #op = stage._op
             func.__setattr__(op.name, op)
     t = Schedule.last_stages
     ops = [t_._op.op for t_ in t]
@@ -268,10 +275,11 @@ def lower(schedule):
             new_inputs.append(i.var)
     return _lower(schedule.sch, new_inputs, simple_mode=True)
 
-def build(schedule, target=None, name="default_function"):
+def build(schedule, target=None, name="default_function", stmt=None):
     """Build the executable according to the schedule and target.
 
-    The default target is `llvm` (i.e., CPU execution).
+    The default target is `llvm` (i.e., CPU execution). If stmt is specified,
+    the statements created by HeteroCL APIs will be ignored.
 
     Parameters
     ----------
@@ -284,6 +292,9 @@ def build(schedule, target=None, name="default_function"):
     name : str, optional
         The name of the generated function
 
+    stmt : Stmt, optional
+        The built statement
+
     Returns
     -------
     tvm.module.Module
@@ -294,7 +305,17 @@ def build(schedule, target=None, name="default_function"):
             new_inputs.append(i.tensor.op.output(0))
         else:
             new_inputs.append(i.var)
-    return _build(schedule.sch, new_inputs, target=target, name=name)
+    if stmt is not None:
+        for i in schedule.inputs:
+            if isinstance(i, Tensor):
+                shapes = []
+                for s in i.shape:
+                    shapes.append(0)
+                    shapes.append(s)
+                tpl = tuple(shapes)
+                stmt = _make.AttrStmt([i.buf, i.tensor], "buffer_bind_scope",
+                        call_intrin('handle', 'tvm_tuple', *tpl), stmt)
+    return _build(schedule.sch, new_inputs, target=target, name=name, stmt=stmt)
 
 ##############################################################################
 # Other useful APIs
@@ -342,4 +363,87 @@ def select(cond, true, false):
     -------
     Expr
     """
-    return _make.Select(cond, true, false)
+    return _make.Select(convert(cond), convert(true), convert(false))
+
+def print(vals, format=""):
+    """Print a HeteroCL object.
+
+    Parameters
+    ----------
+    vals : Expr or list of Expr
+        The values to be printed
+
+    format : string, optional
+        The printing format similar to printf
+
+    Returns
+    -------
+    None
+    """
+    if not isinstance(vals, (tuple, list)):
+        vals = [vals]
+
+    def get_format(val):
+        if isinstance(val, (TensorSlice, Scalar, _expr.Expr)):
+            if (util.get_type(val.dtype)[0] == "int"
+                    or util.get_type(val.dtype)[0] == "uint"):
+                return "%lld"
+            else:
+                return "%f"
+        elif isinstance(val, int):
+            return "%d"
+        elif isinstance(val, float):
+            return "%f"
+
+    def print_tensor(val, ivs, i, ndim):
+        if i == 0: #inner-most
+            iv = ivs[ndim-1]
+            stmt = _make.Print([], "[")
+            value = val[tuple(ivs)]
+            body = _make.Print([value], get_format(value))
+            ite = _make.IfThenElse(iv < iv.dom.extent-1,
+                                   _make.Print([], ", "),
+                                   _make.Evaluate(0))
+            body = _make.Block(body, ite)
+            loop = _make.For(iv.var, iv.dom.min, iv.dom.extent, 0, 0, body)
+            stmt = _make.Block(stmt, loop)
+            stmt = _make.Block(stmt, _make.Print([], "]"))
+            return stmt
+        else:
+            iv = ivs[ndim-1-i]
+            stmt = _make.Print([], "[")
+            body = print_tensor(val, ivs, i-1, ndim)
+            ite = _make.IfThenElse(iv < iv.dom.extent-1,
+                                   _make.Print([], ",\n"),
+                                   _make.Evaluate(0))
+            body = _make.Block(body, ite)
+            loop = _make.For(iv.var, iv.dom.min, iv.dom.extent, 0, 0, body)
+            stmt = _make.Block(stmt, loop)
+            stmt = _make.Block(stmt, _make.Print([], "]"))
+            return stmt
+
+    def print_val(val):
+        stage = Stage.get_current()
+        if isinstance(val, (Scalar, _expr.Expr, numbers.Number)):
+            stage.emit(_make.Print([val], get_format(val) + "\n"))
+        elif isinstance(val, TensorSlice) \
+                and len(val.indices) == len(val.tensor.shape):
+            stage.emit(_make.Print([val], get_format(val) + "\n"))
+        else: # we are dealing with tensors
+            nshape = len(val.tensor.shape)
+            ndim = nshape
+            if isinstance(val, TensorSlice):
+                ndim = nshape - len(val.indices)
+            args = ["print_"+str(n) for n in range(0, ndim)]
+            ivs = [_IterVar((0, val.tensor.shape[nshape-n-1]), args[n], 0) \
+                    for n in range(0, ndim)]
+            import builtins
+            stage.emit(print_tensor(val, ivs, ndim-1, ndim))
+            stage.emit(_make.Print([], "\n"))
+
+    if format == "":
+        for val in vals:
+            print_val(val)
+    else:
+        stage = Stage.get_current()
+        stage.emit(_make.Print(vals, format))

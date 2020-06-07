@@ -83,6 +83,7 @@ class TVM_DLL IRVisitor {
   virtual void Visit_(const Variable* op);
   virtual void Visit_(const LetStmt* op);
   virtual void Visit_(const AttrStmt* op);
+  virtual void Visit_(const ExternModule* op);
   virtual void Visit_(const IfThenElse* op);
   virtual void Visit_(const For* op);
   virtual void Visit_(const Allocate* op);
@@ -131,12 +132,15 @@ class TVM_DLL IRVisitor {
   virtual void Visit_(const KernelDef* op);
   virtual void Visit_(const KernelExpr* op);
   virtual void Visit_(const KernelStmt* op);
+  virtual void Visit_(const StreamExpr* op);
+  virtual void Visit_(const StreamStmt* op);
   virtual void Visit_(const Return* op);
   virtual void Visit_(const Break* op);
   virtual void Visit_(const While* op);
   virtual void Visit_(const Reuse* op);
   virtual void Visit_(const Partition* op);
   virtual void Visit_(const Stencil* op);
+  virtual void Visit_(const Print* op);
 };
 
 /*!
