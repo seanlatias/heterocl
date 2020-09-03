@@ -996,11 +996,31 @@ Tensor Schedule::partition(const Tensor& target, int dim, int factor,
   }
   // build the body of the new stage
   Stmt body = Partition::make(target_buffer->data, dim, factor, partition_type);
+  size_t num_partition = 0;
+  // check if we already partitioned the tensor before
+  for (size_t i = 0; i < num_stage; i++) {
+    Stage stage = (*this)->stages[i];
+    if (stage->op.as<ExternOpNode>()) {
+      std::string stage_name = stage->op->name;
+      if ((stage_name.find("partitioned")) != std::string::npos) {
+        std::vector<std::string> stage_names;
+        std::stringstream ss(stage_name);
+        std::string item;
+        while (std::getline(ss, item, '.')) {
+          stage_names.push_back(item);
+        }
+        if (stage_names.size() == 3 && stage_names[0] == target_buffer->name) {
+          size_t num = std::stoi(stage_names[1]);
+          num_partition = std::max(num, num_partition) + 1;
+        }
+      }
+    }
+  }
+  std::string partition_name = target_buffer->name + "." + std::to_string(num_partition) + ".partitioned";
   // build the new stage
   Array<Tensor> partition_inputs;
   Array<Buffer> partition_input_placeholders;
   Array<Buffer> partition_output_placeholders;
-  std::string partition_name = target_buffer->name + ".partitioned";
   Buffer partition_buffer = BufferNode::make(
       Var(partition_name, Handle()),
       Int(32),

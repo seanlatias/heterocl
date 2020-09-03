@@ -4792,7 +4792,9 @@ private:
             bounds_info.push(op->loop_var.get(), { new_min_int, new_max_int });
         }
 
-        if (is_one(new_extent) && op->annotate_keys.empty()) {
+        // TODO: sean: add a flag that read from the environment variable
+        // to see whether we should keep the attribtutes
+        if (is_one(new_extent)) {
           stmt = mutate(substitute(op->loop_var, 0, op->body));
           return;
         }
