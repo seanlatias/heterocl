@@ -1,0 +1,120 @@
+Version 1.1.10
+--------------
+- Bug fixes:
+
+  * Fixed a bug related to a corner case in the evaluation of "NOT alpha
+    UNTIL beta". (This was reported by Martin Raszyk.)
+
+  * Fixed the evaluation of subformulas of the form "NOT alpha UNTIL
+    beta" which assumed that "NOT alpha" should also hold at the
+    evaluation point when "beta" holds at the evaluation point.
+
+Version 1.1.9
+-------------
+- Bug fixes (reported by Martin Raszyk, Joshua Schneider, and Dmitriy Traytel):
+
+  * "NOT PREVIOUS phi" and "NOT NEXT phi" were wrongly rewritten to
+    "PREVIOUS NOT phi" and "NEXT NOT phi". Such subformulas are not
+    rewritten anymore.
+
+  * The attributes of the relations computed for subformulas phi =
+    "alpha SINCE_I beta" have the wrong order if the left-to-right
+    order of variables in phi differs from that in beta. Same for
+    "alpha UNTIL_I beta". The attributes for such phi subformulas are
+    now those of beta followed by those of alpha.
+
+  * In some cases, MonPoly was outputting satisfactions also for the
+    virtually added maximal time-stamp. For this virtual timestamp no
+    output is now produced.
+
+Version 1.1.8
+-------------
+- Bug fixes (reported by Étienne André):
+
+  There were indeed some inconsistencies the typing of the fields of
+  the tp, ts, and tpts predicates. Now they should be consistent: the
+  tp field should be an integer, while the ts field should be a
+  rational (for both ts and tpts predicates).
+
+Version 1.1.7
+-------------
+- Simplified and extented output for non-monitorable formulas.
+- Small bug fixes.
+
+Version 1.1.6
+-------------
+- Small bug fixes.
+
+Version 1.1.5
+-------------
+- Small bug fixes.
+
+Version 1.1.4
+-------------
+- Syntax change: Variables do not need to be prefix by the ? symbol.
+  (For the syntax of aggregations, see the formulas in the
+  experiments/policies directory.)
+- Note: In comparison to the FMSD submission, the trigger operator is
+  not supported, and the past always operator is treated as sytactic
+  sugar for NEG ONCE NEG.
+- Support for the MED ("median") aggregation operator.
+- Support for floating point numbers.
+- AVG return a floting point number, not an integer.
+- New function symbols: MOD, and the type convertors f2i and i2f.
+
+Version 1.1.3
+-------------
+- extension to aggregation operators and function symbols; limitations:
+  - aggregation only on variables and not on arbitrary terms
+  - only arithmetic functions
+  - average returns an integer, not a float
+  - rudimentary type checking
+  - some rules (e.g. RIG_{\land\neg}) are not implemented yet
+
+Version 1.1.2
+-------------
+- Performance improvement in the evaluation of subformulas of the form
+phi AND psi, where the free variables of phi form a subset of the
+free variables of psi.
+
+- An accompanying translation from MFOTL formulas to SQL queries.
+
+Version 1.1.1
+-------------
+- Small bug fixes.
+
+Version 1.1.0
+-------------
+- Implemented two log filters which filter tuples and empty time
+  points based on the input formula
+
+- Implemented a new algorithm to incrementally compute the satisfying
+  tuples for temporal subformulas (see the Sliding module)
+
+- Relation.minus is now computed as an anti-join instead of a
+  equi-join followed by a set difference.
+
+- Improvement in computing the satisfying tuples for some temporal
+  subformulas, by merging time-points with equal time-stamps.
+
+- Signature files should now contain both variable names and
+  corresponding types.
+
+- Saving and loading the monitor state currently disabled.
+
+- Minor bug fixes.
+
+
+Version 1.0.1
+-------------
+- Minor bug fix.
+
+- Added an example (the more complex policy from the RV'11 tool
+  paper).
+
+- Empty relations accepted in the log files.
+
+
+Version 1.0.0
+-------------
+First release.
