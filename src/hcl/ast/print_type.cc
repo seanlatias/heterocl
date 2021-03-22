@@ -19,5 +19,22 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
       }
     });
 
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+    .set_dispatch<ASTFloat>([](const ASTFloat *op, IRPrinter *p) {
+      p->stream << "float" << op->nbits;
+    });
+
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+    .set_dispatch<ASTTensorType>([](const ASTTensorType *op, IRPrinter *p) {
+      p->stream << "tensor<";
+      for (size_t i = 0; i < op->dims.size(); i++) {
+        p->print(op->dims[i]);
+        p->stream << " x ";
+      }
+      p->print(op->type);
+      p->stream << ">";
+    });
+
+
 }  // namespace ast
 }  // namespace hcl

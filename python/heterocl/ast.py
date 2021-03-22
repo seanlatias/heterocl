@@ -12,6 +12,14 @@ class ASTType(NodeBase):
 class ASTInt(ASTType):
     pass
 
+@register_node("ASTFloat")
+class ASTFloat(ASTType):
+    pass
+
+@register_node("ASTTensorType")
+class ASTTensorType(ASTType):
+    pass
+
 class ASTExpr(NodeBase):
     pass
 

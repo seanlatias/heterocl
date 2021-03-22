@@ -11,6 +11,9 @@
 namespace hcl {
 namespace ast {
 
+using TVM::Array;
+using Halide::Expr;
+
 class ASTTypeNode : public Node {
  public:
   static constexpr const char* _type_key = "ASTType";
@@ -42,6 +45,43 @@ class ASTInt : public ASTTypeNode {
 
   static constexpr const char* _type_key = "ASTInt";
   TVM_DECLARE_NODE_TYPE_INFO(ASTInt, ASTTypeNode);
+};
+
+class ASTFloat : public ASTTypeNode {
+ public:
+  uint64_t nbits;
+  uint64_t nexps;   // exponent
+  uint64_t nmants;  // mantissa
+
+  static ASTType make(uint64_t nbits);
+  static ASTType make(uint64_t nbits, uint64_t nexps, uint64_t nmants);
+
+  void VisitAttrs(AttrVisitor* v) final {
+    v->Visit("nbits", &nbits);
+    v->Visit("nexps", &nexps);
+    v->Visit("nmants", &nmants);
+  }
+
+  static constexpr const char* _type_key = "ASTFloat";
+  TVM_DECLARE_NODE_TYPE_INFO(ASTFloat, ASTTypeNode);
+};
+
+class ASTTensorType : public ASTTypeNode {
+ public:
+  ASTType type;
+  Array<Expr> dims;
+
+  static ASTType make(ASTType type, Array<Expr> dims);
+
+  size_t ndim() { return dims.size(); }
+
+  void VisitAttrs(AttrVisitor* v) final {
+    v->Visit("type", &type);
+    v->Visit("dims", &dims);
+  }
+
+  static constexpr const char* _type_key = "ASTTensorType";
+  TVM_DECLARE_NODE_TYPE_INFO(ASTTensorType, ASTTypeNode);
 };
 
 // implements of inline functions
