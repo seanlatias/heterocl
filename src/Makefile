@@ -58,7 +58,7 @@ LIB_HALIDEIR = HalideIR/lib/libHalideIR.a
 
 CC_SRC = $(filter-out tvm/runtime/%.cc tvm/codgen/llvm/%.cc,\
              $(wildcard tvm/*/*.cc tvm/*/*/*.cc))
-HCL_CC_SRC = $(wildcard hcl/*/*/*.cc)
+HCL_CC_SRC = $(wildcard hcl/*/*.cc hcl/*/*/*.cc)
 LLVM_SRC = $(wildcard tvm/codegen/llvm/*.cc tvm/codegen/llvm/*/*.cc)
 CUDA_SRC = $(wildcard tvm/runtime/cuda/*.cc)
 ROCM_SRC = $(wildcard tvm/runtime/rocm/*.cc)
