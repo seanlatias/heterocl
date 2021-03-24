@@ -27,12 +27,13 @@ LLVM_CFLAGS= -fno-rtti -DDMLC_ENABLE_RTTI=0 -DDMLC_USE_FOPEN64=0
 LDFLAGS = -pthread -lm -ldl
 MLIR_LIBS_SRC = $(wildcard $(HCL_PKG_LLVM_PRJ)/build/lib/libMLIR*.a)
 MLIR_LIBS = $(patsubst $(HCL_PKG_LLVM_PRJ)/build/lib/libMLIR%.a, -lMLIR%, $(MLIR_LIBS_SRC))
-LDFLAGS += -L$(HCL_PKG_LLVM_PRJ)/build/lib $(MLIR_LIBS)
 LDFLAGS += $(shell $(LLVM_CONFIG) --ldflags --libs --system-libs)
+LDFLAGS += -L$(HCL_PKG_LLVM_PRJ)/build/lib $(MLIR_LIBS)
 INCLUDE_FLAGS = -I../include -I$(DLPACK_PATH)/include -I$(DMLC_CORE_PATH)/include -IHalideIR/src
 INCLUDE_FLAGS += $(filter -I%, $(shell $(LLVM_CONFIG) --cxxflags))
 INCLUDE_FLAGS += -I$(HCL_PKG_LLVM_PRJ)/mlir/include -I$(HCL_PKG_LLVM_PRJ)/build/tools/mlir/include
-CFLAGS = -std=c++14 -Wall -O2 $(INCLUDE_FLAGS) -fPIC
+CFLAGS = -std=c++14 -Wall -O2 $(INCLUDE_FLAGS) -fPIC -Wl,--no-undefined
+HCL_CFLAGS = $(CFLAGS) -fno-rtti
 PKG_LDFLAGS =
 FRAMEWORKS =
 OBJCFLAGS = -fno-objc-arc
@@ -84,7 +85,7 @@ CC_OBJ = $(patsubst tvm/%.cc, build/%.o, $(CC_SRC)) $(LLVM_OBJ)
 RUNTIME_OBJ = $(patsubst tvm/%.cc, build/%.o, $(RUNTIME_SRC))
 
 # Deps
-ALL_DEP = $(MLIR_HDR) $(HCL_CC_OBJ) $(CC_OBJ) $(LIB_HALIDEIR)
+ALL_DEP = $(MLIR_HDR) $(CC_OBJ) $(HCL_CC_OBJ) $(LIB_HALIDEIR)
 RUNTIME_DEP = $(RUNTIME_OBJ)
 
 ifeq ($(UNAME_S), Darwin)
@@ -226,16 +227,16 @@ build/%.o: tvm/%.cc
 
 build/%.o: hcl/%.cc
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) -MM -MT build/$*.o $< >build/$*.d
-	$(CXX) -c $(CFLAGS) -c $< -o $@
+	$(CXX) $(HCL_CFLAGS) -MM -MT build/$*.o $< >build/$*.d
+	$(CXX) -c $(HCL_CFLAGS) -c $< -o $@
 
 lib/libhcl.${SHARED_LIBRARY_SUFFIX}: $(ALL_DEP) $(RUNTIME_DEP)
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) $(FRAMEWORKS) -shared -o $@ $(filter %.o %.a, $^) $(LDFLAGS)
+	$(CXX) $(HCL_CFLAGS) $(FRAMEWORKS) -shared -o $@ $(filter %.o %.a, $^) $(LDFLAGS)
 
 lib/libhcl_runtime.${SHARED_LIBRARY_SUFFIX}: $(RUNTIME_DEP)
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) $(FRAMEWORKS) -shared -o $@ $(filter %.o %.a, $^) $(LDFLAGS)
+	$(CXX) $(HCL_CFLAGS) $(FRAMEWORKS) -shared -o $@ $(filter %.o %.a, $^) $(LDFLAGS)
 
 $(MLIR_HDR): MLIRHDR
 

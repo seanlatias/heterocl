@@ -1,6 +1,5 @@
 import sys
 from .api import *
-from .ast import *
 from .compute_api import *
 from .dsl import *
 from .types import *
