@@ -17,6 +17,11 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
     });
 
 TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+    .set_dispatch<MLIRModuleNode>([](const MLIRModuleNode *op, IRPrinter *p) {
+      op->module.get().dump();
+    });
+
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
     .set_dispatch<Placeholder>([](const Placeholder *op, IRPrinter *p) {
       p->do_indent();
       p->stream << "Placeholder: ";
@@ -47,18 +52,39 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
       p->print(op->dest);
       p->stream << " = ";
       p->print(op->expr);
+      p->stream << "\n";
+    });
+
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+    .set_dispatch<Function>([](const Function *op, IRPrinter *p) {
+      p->do_indent();
+      p->print(op->ret_type);
+      p->stream << " " << op->name << "(";
+      for (size_t i = 0; i < op->args.size(); i++) {
+        p->print(op->args[i].type());
+        p->stream << " ";
+        p->print(op->args[i]);
+        if (i != op->args.size()-1) p->stream << ", ";
+      }
+      p->stream << ") {\n";
+      p->indent += 2;
+      p->print(op->body);
+      p->indent -= 2;
+      p->do_indent();
+      p->stream << "}\n";
     });
 
 TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
     .set_dispatch<Module>([](const Module *op, IRPrinter *p) {
-      p->stream << "Module { ";
+      p->stream << "Module " << op->name << " { ";
       p->print(op->loc);
+      p->stream << "\n";
       p->indent += 2;
-      for (size_t i = 0; i < op->regions.size(); i++) {
-        p->print(op->regions[i]);
+      for (size_t i = 0; i < op->functions.size(); i++) {
+        p->print(op->functions[i]);
       }
       p->indent -= 2;
-      p->stream << "}";
+      p->stream << "}\n";
     });
 
  TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
@@ -66,13 +92,14 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
       p->do_indent();
       p->stream << "Region { ";
       p->print(op->loc);
+      p->stream << "\n";
       p->indent += 2;
       for (size_t i = 0; i < op->blocks.size(); i++) {
         p->print(op->blocks[i]);
       }
       p->indent -= 2;
       p->do_indent();
-      p->stream << "}";
+      p->stream << "}\n";
     });
 
  TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
@@ -80,13 +107,14 @@ TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
       p->do_indent();
       p->stream << "Block { ";
       p->print(op->loc);
+      p->stream << "\n";
       p->indent += 2;
       for (size_t i = 0; i < op->operations.size(); i++) {
         p->print(op->operations[i]);
       }
       p->indent -= 2;
       p->do_indent();
-      p->stream << "}";
+      p->stream << "}\n";
     });
 
 }  // namespace ast

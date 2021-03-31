@@ -8,6 +8,11 @@
 namespace hcl {
 namespace ast {
 
+ASTType ASTNone::make() {
+  std::shared_ptr<ASTNone> node = std::make_shared<ASTNone>();
+  return ASTType(node);
+}
+
 ASTType ASTInt::make(bool is_signed, uint64_t nbits, uint64_t nints) {
   std::shared_ptr<ASTInt> node = std::make_shared<ASTInt>();
   node->is_signed = is_signed;
@@ -39,9 +44,15 @@ ASTType ASTTensorType::make(ASTType type, Array<Expr> dims) {
   return ASTType(node);
 }
 
+TVM_REGISTER_NODE_TYPE(ASTNone);
 TVM_REGISTER_NODE_TYPE(ASTInt);
 TVM_REGISTER_NODE_TYPE(ASTFloat);
 TVM_REGISTER_NODE_TYPE(ASTTensorType);
+
+TVM_REGISTER_API("make.ASTNone")
+    .set_body([](TVMArgs args, TVMRetValue *ret) {
+      *ret = ASTNone::make();
+    });
 
 TVM_REGISTER_API("make.ASTInt")
     .set_body([](TVMArgs args, TVMRetValue *ret) {

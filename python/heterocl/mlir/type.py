@@ -4,6 +4,10 @@ class Type():
     def get(self):
         pass
 
+class NoneType(Type):
+    def get(self):
+        return _make.ASTNone()
+
 class Int(Type):
     def __init__(self, nbits=32, nints=32, signed=True):
         self.nbits = nbits

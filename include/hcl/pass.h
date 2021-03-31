@@ -7,12 +7,21 @@
 #define HCL_PASS_H_
 
 #include "ast/ast.h"
+#include "tvm/buffer.h"
+#include "tvm/ir.h"
+#include "tvm/expr.h"
+#include "tvm/operation.h"
+
+#include "mlir/IR/BuiltinOps.h"
+
 
 namespace hcl {
 
 using namespace ast;
 
-void ast_to_hclir(ASTStmt module);
+MLIRModule ast_to_hclir(ASTStmt module);
+
+TVM::Stmt hclir_to_tvm(MLIRModule module, TVM::Array<TVM::Buffer> extern_buffer);
 
 }  // namespace hcl
 

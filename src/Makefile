@@ -33,7 +33,7 @@ INCLUDE_FLAGS = -I../include -I$(DLPACK_PATH)/include -I$(DMLC_CORE_PATH)/includ
 INCLUDE_FLAGS += $(filter -I%, $(shell $(LLVM_CONFIG) --cxxflags))
 INCLUDE_FLAGS += -I$(HCL_PKG_LLVM_PRJ)/mlir/include -I$(HCL_PKG_LLVM_PRJ)/build/tools/mlir/include
 CFLAGS = -std=c++14 -Wall -O2 $(INCLUDE_FLAGS) -fPIC -Wl,--no-undefined
-HCL_CFLAGS = $(CFLAGS) -fno-rtti
+HCL_CFLAGS = $(CFLAGS) -fno-rtti -DDMLC_ENABLE_RTTI=0 -DDMLC_USE_FOPEN64=0
 PKG_LDFLAGS =
 FRAMEWORKS =
 OBJCFLAGS = -fno-objc-arc

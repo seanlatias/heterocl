@@ -81,16 +81,39 @@ class Compute : public ASTStmtNode<Compute> {
   static constexpr const char* _type_key = "ASTCompute";
 };
 
-/* The top-level operation */
-class Module : public ASTStmtNode<Module> {
+/* A function operation */
+class Function : public ASTStmtNode<Function> {
  public:
-  Array<ASTStmt> regions;
+  std::string name;
+  Array<ASTExpr> args;
+  ASTType ret_type;
+  ASTStmt body;
 
-  static ASTStmt make(Location loc, Array<ASTStmt> regions);
+  static ASTStmt make(Location loc, std::string name, Array<ASTExpr> args, ASTType ret_type, ASTStmt body);
 
   void VisitAttrs(AttrVisitor* v) final {
     v->Visit("loc", &loc);
-    v->Visit("regions", &regions);
+    v->Visit("name", &name);
+    v->Visit("args", &args);
+    v->Visit("ret_type", &ret_type);
+    v->Visit("body", &body);
+  }
+
+  static constexpr const char* _type_key = "ASTFunction";
+};
+
+/* The top-level operation */
+class Module : public ASTStmtNode<Module> {
+ public:
+  std::string name;
+  Array<ASTStmt> functions;
+
+  static ASTStmt make(Location loc, std::string name, Array<ASTStmt> functions);
+
+  void VisitAttrs(AttrVisitor* v) final {
+    v->Visit("loc", &loc);
+    v->Visit("name", &name);
+    v->Visit("functions", &functions);
   }
 
   static constexpr const char* _type_key = "ASTModule";

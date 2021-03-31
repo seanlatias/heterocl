@@ -10,6 +10,16 @@
 include "HCLIR/HCLIRDialect.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
+def AllocateOp : HCLIR_Op<"allocate"> {
+
+    let summary = "Allocate a variable";
+    let description = [{
+        Allcoate a variable
+    }];
+
+    let results = (outs AnyType);
+}
+
 def AddOp : HCLIR_Op<"add"> {
 
     let summary = "Add operator";
@@ -19,6 +29,16 @@ def AddOp : HCLIR_Op<"add"> {
 
     let arguments = (ins AnyType:$a, AnyType:$b);
     let results = (outs AnyType);
+}
+
+def ComputeOp : HCLIR_Op<"compute"> {
+
+    let summary = "Compute an expression";
+    let description = [{
+        Compute an expression
+    }];
+
+    let arguments = (ins AnyType:$dest, AnyType:$expr);
 }
 
 #endif // HCL_DIALECT_HCLIR_OPS

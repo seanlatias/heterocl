@@ -5,7 +5,15 @@ from ..tvm._ffi.node import NodeBase, register_node
 class Location(NodeBase):
     pass
 
+@register_node("MLIRModule")
+class MLIRModule(NodeBase):
+    pass
+
 class ASTType(NodeBase):
+    pass
+
+@register_node("ASTNone")
+class ASTInt(ASTType):
     pass
 
 @register_node("ASTInt")
@@ -40,6 +48,10 @@ class ASTAdd(ASTExpr):
 
 @register_node("ASTCompute")
 class ASTCompute(ASTStmt):
+    pass
+
+@register_node("ASTFunction")
+class ASTFunction(ASTStmt):
     pass
 
 @register_node("ASTModule")

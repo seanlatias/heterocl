@@ -8,6 +8,8 @@
 
 #include "../../tvm/expr.h"
 
+#include "mlir/IR/BuiltinOps.h"
+
 namespace hcl {
 namespace ast {
 
@@ -47,9 +49,35 @@ class Location : public NodeRef {
   using ContainerType = LocationNode;
 };
 
+class MLIRModule;
+
+/* A wrapper for MLIR ModuleOp */
+class MLIRModuleNode : public Node {
+ public:
+  mlir::OwningModuleRef module;
+
+  static MLIRModule make(mlir::OwningModuleRef module);
+
+  static constexpr const char* _type_key = "MLIRModule";
+  TVM_DECLARE_NODE_TYPE_INFO(MLIRModuleNode, Node);
+};
+
+class MLIRModule : public NodeRef {
+ public:
+  MLIRModule() {}
+  explicit MLIRModule(std::shared_ptr<Node> n) : NodeRef(n) {}
+
+  inline const MLIRModuleNode* operator->() const;
+  using ContainerType = MLIRModuleNode;
+};
+
 // implements of inline functions
 inline const LocationNode* Location::operator->() const {
   return static_cast<const LocationNode*>(node_.get());
+}
+
+inline const MLIRModuleNode* MLIRModule::operator->() const {
+  return static_cast<const MLIRModuleNode*>(node_.get());
 }
 
 }  // namespace ast

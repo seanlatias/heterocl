@@ -10,6 +10,11 @@ namespace ast {
 using Halide::Internal::IRPrinter;
 
 TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
+    .set_dispatch<ASTNone>([](const ASTNone *op, IRPrinter *p) {
+      p->stream << "void";
+    });
+
+TVM_STATIC_IR_FUNCTOR(IRPrinter, vtable)
     .set_dispatch<ASTInt>([](const ASTInt *op, IRPrinter *p) {
       if (!op->is_signed) p->stream << "u";
       if (op->nbits == op->nints) {

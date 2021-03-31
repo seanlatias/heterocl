@@ -29,6 +29,16 @@ class ASTType : public NodeRef {
   using ContainerType = ASTTypeNode;
 };
 
+class ASTNone : public ASTTypeNode {
+ public:
+  static ASTType make();
+
+  void VisitAttrs(AttrVisitor* v) final {}
+
+  static constexpr const char* _type_key = "ASTNone";
+  TVM_DECLARE_NODE_TYPE_INFO(ASTNone, ASTTypeNode);
+};
+
 class ASTInt : public ASTTypeNode {
  public:
   bool is_signed;

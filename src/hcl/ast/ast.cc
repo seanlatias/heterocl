@@ -16,6 +16,12 @@ Location LocationNode::make(std::string file_name, int line, int column) {
   return Location(node);
 }
 
+MLIRModule MLIRModuleNode::make(mlir::OwningModuleRef module) {
+  std::shared_ptr<MLIRModuleNode> node = std::make_shared<MLIRModuleNode>();
+  node->module = std::move(module);
+  return MLIRModule(node);
+}
+
 ASTExpr Placeholder::make(Location loc, ASTType type, std::string name) {
   std::shared_ptr<Placeholder> node = std::make_shared<Placeholder>();
   node->loc = std::move(loc);
@@ -49,30 +55,45 @@ ASTStmt Compute::make(Location loc, ASTExpr dest, ASTExpr expr) {
   return ASTStmt(node);
 }
 
-ASTStmt Module::make(Location loc, Array<ASTStmt> regions) {
+ASTStmt Function::make(Location loc, std::string name, Array<ASTExpr> args, ASTType ret_type, ASTStmt body) {
+  std::shared_ptr<Function> node = std::make_shared<Function>();
+  node->loc = std::move(loc);
+  node->name = name;
+  node->args = std::move(args);
+  node->ret_type = std::move(ret_type);
+  node->body = std::move(body);
+  return ASTStmt(node);
+}
+
+ASTStmt Module::make(Location loc, std::string name, Array<ASTStmt> functions) {
   std::shared_ptr<Module> node = std::make_shared<Module>();
   node->loc = std::move(loc);
-  node->regions = std::move(regions);
+  node->functions = std::move(functions);
+  return ASTStmt(node);
 }
 
 ASTStmt Region::make(Location loc, Array<ASTStmt> blocks) {
   std::shared_ptr<Region> node = std::make_shared<Region>();
   node->loc = std::move(loc);
   node->blocks = std::move(blocks);
+  return ASTStmt(node);
 }
 
 ASTStmt Block::make(Location loc, Array<ASTStmt> operations) {
   std::shared_ptr<Block> node = std::make_shared<Block>();
   node->loc = std::move(loc);
   node->operations = std::move(operations);
+  return ASTStmt(node);
 }
 
 TVM_REGISTER_NODE_TYPE(LocationNode);
+TVM_REGISTER_NODE_TYPE(MLIRModuleNode);
 TVM_REGISTER_NODE_TYPE(Placeholder);
 TVM_REGISTER_NODE_TYPE(VarDeclare);
 TVM_REGISTER_NODE_TYPE(Add);
 
 TVM_REGISTER_NODE_TYPE(Compute);
+TVM_REGISTER_NODE_TYPE(Function);
 TVM_REGISTER_NODE_TYPE(Module);
 TVM_REGISTER_NODE_TYPE(Region);
 TVM_REGISTER_NODE_TYPE(Block);
@@ -102,9 +123,14 @@ TVM_REGISTER_API("make.ASTCompute")
       *ret = Compute::make(args[0], args[1], args[2]);
     });
 
+TVM_REGISTER_API("make.ASTFunction")
+    .set_body([](TVMArgs args, TVMRetValue *ret) {
+      *ret = Function::make(args[0], args[1], args[2], args[3], args[4]);
+    });
+
 TVM_REGISTER_API("make.ASTModule")
     .set_body([](TVMArgs args, TVMRetValue *ret) {
-      *ret = Module::make(args[0], args[1]);
+      *ret = Module::make(args[0], args[1], args[2]);
     });
 
 TVM_REGISTER_API("make.ASTRegion")

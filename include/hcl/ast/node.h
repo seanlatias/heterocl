@@ -36,6 +36,10 @@ class ASTExpr : public NodeRef {
   ASTExpr() {}
   explicit ASTExpr(std::shared_ptr<Node> n) : NodeRef(n) {}
 
+  ASTType type() const {
+    return static_cast<const BaseASTExprNode*>(node_.get())->type;
+  }
+
   inline const BaseASTExprNode* operator->() const;
   using ContainerType = BaseASTExprNode;
 };
