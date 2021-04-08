@@ -8,7 +8,6 @@
 #define HCL_DIALECT_HCLIR_OPS
 
 include "HCLIR/HCLIRDialect.td"
-include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def AllocateOp : HCLIR_Op<"allocate"> {
 

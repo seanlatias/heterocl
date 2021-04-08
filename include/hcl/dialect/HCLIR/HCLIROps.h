@@ -12,6 +12,8 @@
 #include <mlir/IR/OpDefinition.h>
 #include <mlir/Interfaces/SideEffectInterfaces.h>
 
+using namespace mlir::OpTrait;
+
 #define GET_OP_CLASSES
 #include "hcl/dialect/HCLIR/HCLIROps.h.inc"
 
