@@ -279,6 +279,9 @@ class CodeGenLLVM : public ExprFunctor<llvm::Value*(const Expr&)>,
   // for Return
   bool has_return_{false};
 
+  // for Assert
+  llvm::BasicBlock* exit_;
+
   // for kernel use
   llvm::Function* function_save;
   std::unordered_map<const Variable*, llvm::Value*> var_map_save;

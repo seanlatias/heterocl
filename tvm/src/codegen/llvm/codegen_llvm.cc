@@ -159,8 +159,11 @@ void CodeGenLLVM::AddFunctionInternal(const LoweredFunc& f, bool ret_void) {
     }
   }
   llvm::BasicBlock* entry = llvm::BasicBlock::Create(*ctx_, "entry", function_);
+  exit_ = llvm::BasicBlock::Create(*ctx_, "main_exit", function_);
   builder_->SetInsertPoint(entry);
   this->VisitStmt(f->body);
+  builder_->CreateBr(exit_);
+  builder_->SetInsertPoint(exit_);
   if (ret_void) {
     builder_->CreateRetVoid();
   } else {
@@ -177,7 +180,7 @@ std::unique_ptr<llvm::Module> CodeGenLLVM::Finish() {
   }
   link_modules_.clear();
   // optimize
-  this->Optimize();
+  //this->Optimize();
   return std::move(module_);
 }
 
@@ -1417,8 +1420,14 @@ void CodeGenLLVM::VisitStmt_(const AttrStmt* op) {
 }
 
 void CodeGenLLVM::VisitStmt_(const AssertStmt* op) {
-  VisitAssert(op, &align_map_,
-              [this](const Stmt& body) { this->VisitStmt(body); });
+  llvm::Value* cond = MakeValue(op->condition);
+  llvm::BasicBlock* succ_block = llvm::BasicBlock::Create(*ctx_, "assert_succ", function_);
+  llvm::BasicBlock* fail_block = llvm::BasicBlock::Create(*ctx_, "assert_fail", function_);
+  builder_->CreateCondBr(cond, succ_block, fail_block);
+  builder_->SetInsertPoint(fail_block);
+  builder_->CreateBr(exit_);
+  builder_->SetInsertPoint(succ_block);
+  this->VisitStmt(op->body);
 }
 
 void CodeGenLLVM::VisitStmt_(const LetStmt* op) {

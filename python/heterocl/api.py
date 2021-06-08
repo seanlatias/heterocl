@@ -466,3 +466,7 @@ def print(vals, format=""):
     else:
         stage = Stage.get_current()
         stage.emit(_make.Print(vals, format))
+
+def assert_(cond, message):
+    stage = Stage.get_current()
+    stage.emit(lambda x: _make.AssertStmt(cond, _make.StringImm(message), x))
